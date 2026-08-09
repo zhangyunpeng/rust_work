@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "crates/base",
     "crates/executor",
     "crates/timer_future",
 ]

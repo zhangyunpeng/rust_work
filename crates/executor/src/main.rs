@@ -1,7 +1,7 @@
 use futures::FutureExt;
 use futures::future::BoxFuture;
 use futures::task::{ArcWake, waker_ref};
-use std::sync::mpsc::{sync_channel, Receiver, SyncSender};
+use std::sync::mpsc::{Receiver, SyncSender, sync_channel};
 use std::sync::{Arc, Mutex};
 use std::task::Context;
 use std::time::Duration;
@@ -19,7 +19,6 @@ struct Task {
     future: Mutex<Option<BoxFuture<'static, ()>>>,
     task_sender: SyncSender<Arc<Task>>,
 }
-
 
 fn new_executor_and_spawner() -> (Executor, Spawner) {
     const MAX_QUEUED_TASKS: usize = 10_000;
@@ -51,7 +50,7 @@ impl Executor {
             let mut future_slot = task.future.lock().unwrap();
             if let Some(mut future) = future_slot.take() {
                 let waker = waker_ref(&task);
-                let context = &mut Context::from_waker(&*waker);
+                let context = &mut Context::from_waker(&waker);
                 if future.as_mut().poll(context).is_pending() {
                     *future_slot = Some(future);
                 }
@@ -63,7 +62,7 @@ impl Executor {
 fn main() {
     let (executor, spawner) = new_executor_and_spawner();
     spawner.spawn(async {
-       println!("howdy");
+        println!("howdy");
         TimerFuture::new(Duration::new(2, 0)).await;
         println!("done!");
     });
