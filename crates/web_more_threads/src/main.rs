@@ -7,12 +7,10 @@ fn main() {
 
     for stream in listener.incoming() {
         let stream = stream.unwrap();
-        pool.execute(||{
+        pool.execute(|| {
             handle_connection(stream);
         });
     }
 }
 
-fn handle_connection(mut stream: TcpStream) {
-    
-}
+fn handle_connection(mut _stream: TcpStream) {}

@@ -1,5 +1,5 @@
-use std::sync::{mpsc, Arc, Mutex};
 use std::sync::mpsc::Receiver;
+use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 
 pub struct ThreadPool {
@@ -20,15 +20,12 @@ impl ThreadPool {
         for id in 0..size {
             workers.push(Worker::new(id, Arc::clone(&receiver)));
         }
-        Self{
-            workers,
-            sender,
-        }
+        Self { workers, sender }
     }
 
     pub fn execute<F>(&self, f: F)
     where
-        F: FnOnce() + Send + 'static
+        F: FnOnce() + Send + 'static,
     {
         let job = Box::new(f);
         self.sender.send(job).unwrap();
@@ -47,7 +44,7 @@ impl Drop for ThreadPool {
 }
 
 struct Worker {
-    id: usize,
+    // id: usize,
     thread: Option<thread::JoinHandle<()>>,
     // receiver: Arc<Mutex<Receiver<Job>>>,
 }
@@ -62,7 +59,7 @@ impl Worker {
             }
         }));
         Self {
-            id,
+            // id,
             thread,
         }
     }

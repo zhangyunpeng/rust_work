@@ -32,3 +32,25 @@ impl SelfRef {
         unsafe { &*(self.b) }
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use crate::pin::SelfRef;
+
+    #[test]
+    fn normal() {
+        let mut sr1 = SelfRef::new("test1");
+        let mut sr2 = SelfRef::new("test2");
+
+        assert_eq!(sr1.as_ref().a(), sr1.as_ref().b());
+        assert_eq!(sr1.as_ref().b(), "test1");
+        assert_eq!(sr2.as_ref().a(), sr2.as_ref().b());
+        assert_eq!(sr2.as_ref().b(), "test2");
+        std::mem::swap(&mut sr1, &mut sr2);
+        assert_eq!(sr1.as_ref().a(), sr1.as_ref().b());
+        assert_eq!(sr1.as_ref().b(), "test2");
+        assert_eq!(sr2.as_ref().a(), sr2.as_ref().b());
+        assert_eq!(sr2.as_ref().b(), "test1");
+    }
+}
