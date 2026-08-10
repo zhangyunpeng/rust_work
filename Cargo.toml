@@ -2,7 +2,8 @@
 members = [
     "crates/base",
     "crates/executor",
-    "crates/timer_future",
+    "crates/timer_future", "crates/web_more_threads",
+    "crates/web_single_thread",
 ]
 
 [workspace.dependencies]
