@@ -97,8 +97,9 @@ pub struct IterMut<'a, T: 'a>(VecDeque<NodeIterMut<'a, T>>);
 impl<T> Tree<T> {
     pub fn iter_mut(&mut self) -> IterMut<'_, T> {
         let mut deque = VecDeque::new();
-        if let Some(root) = self.root
-            .as_mut() { deque.push_front(root.iter_mut()) }
+        if let Some(root) = self.root.as_mut() {
+            deque.push_front(root.iter_mut())
+        }
         IterMut(deque)
     }
 }
