@@ -3,10 +3,61 @@ use std::ops::{Deref, DerefMut};
 use std::ptr::NonNull;
 use std::{mem, ptr};
 
-pub struct SelfVec<T> {
+struct RawVec<T> {
     ptr: NonNull<T>,
-    len: usize,
     cap: usize,
+}
+
+impl<T> RawVec<T> {
+    fn new() -> Self {
+        assert!(mem::size_of::<T>() > 0, "TODO:实现零尺寸类型的支持");
+        Self {
+            ptr: NonNull::dangling(),
+            cap: 0,
+        }
+    }
+
+    fn grow(&mut self) {
+        let new_cap = if self.cap == 0 { 1 } else { self.cap * 2 };
+        let new_layout = Layout::array::<T>(new_cap).unwrap();
+        let new_ptr = if self.cap == 0 {
+            unsafe { alloc(new_layout) }
+        } else {
+            unsafe {
+                let old_layout = Layout::array::<T>(self.cap).unwrap();
+                realloc(self.ptr.as_ptr() as *mut u8, old_layout, new_layout.size())
+            }
+        };
+        if new_ptr.is_null() {
+            panic!("realloc failed");
+        }
+        self.ptr = NonNull::new(new_ptr as *mut T).unwrap();
+        self.cap = new_cap;
+    }
+}
+
+impl<T> Default for RawVec<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<T> Drop for RawVec<T> {
+    fn drop(&mut self) {
+        if self.cap > 0 {
+            let layout = Layout::array::<T>(self.cap).unwrap();
+            unsafe {
+                dealloc(self.ptr.as_ptr() as *mut u8, layout);
+            }
+        }
+    }
+}
+
+pub struct SelfVec<T> {
+    // ptr: NonNull<T>,
+    raw_vec: RawVec<T>,
+    len: usize,
+    // cap: usize,
 }
 
 impl<T> SelfVec<T> {
@@ -16,9 +67,10 @@ impl<T> SelfVec<T> {
             "zero sized types are not supported"
         );
         Self {
-            ptr: NonNull::dangling(),
+            // ptr: NonNull::dangling(),
+            raw_vec: RawVec::default(),
             len: 0,
-            cap: 0,
+            // cap: 0,
         }
     }
 
@@ -31,16 +83,16 @@ impl<T> SelfVec<T> {
     }
 
     pub fn cap(&self) -> usize {
-        self.cap
+        self.raw_vec.cap
     }
 
     pub fn push(&mut self, value: T) {
-        if self.len == self.cap {
-            self.grow();
+        if self.len == self.raw_vec.cap {
+            self.raw_vec.grow();
         }
 
         unsafe {
-            ptr::write(self.ptr.as_ptr().add(self.len), value);
+            ptr::write(self.raw_vec.ptr.as_ptr().add(self.len), value);
         }
         self.len += 1;
     }
@@ -50,34 +102,34 @@ impl<T> SelfVec<T> {
             return None;
         }
 
-        let result = unsafe { ptr::read(self.ptr.as_ptr().add(self.len - 1)) };
+        let result = unsafe { ptr::read(self.raw_vec.ptr.as_ptr().add(self.len - 1)) };
         self.len -= 1;
         Some(result)
     }
 
     pub fn insert(&mut self, index: usize, element: T) {
-        assert!(index < self.len);
-        if self.len == self.cap {
-            self.grow();
+        assert!(index <= self.len);
+        if self.len == self.raw_vec.cap {
+            self.raw_vec.grow();
         }
         unsafe {
             ptr::copy(
-                self.ptr.as_ptr().add(index),
-                self.ptr.as_ptr().add(index + 1),
+                self.raw_vec.ptr.as_ptr().add(index),
+                self.raw_vec.ptr.as_ptr().add(index + 1),
                 self.len - index,
             );
-            ptr::write(self.ptr.as_ptr().add(index), element);
+            ptr::write(self.raw_vec.ptr.as_ptr().add(index), element);
         }
         self.len += 1;
     }
 
     pub fn remove(&mut self, index: usize) -> T {
         assert!(index < self.len);
-        let result = unsafe { ptr::read(self.ptr.as_ptr().add(index)) };
+        let result = unsafe { ptr::read(self.raw_vec.ptr.as_ptr().add(index)) };
         unsafe {
             ptr::copy(
-                self.ptr.as_ptr().add(index + 1),
-                self.ptr.as_ptr().add(index),
+                self.raw_vec.ptr.as_ptr().add(index + 1),
+                self.raw_vec.ptr.as_ptr().add(index),
                 self.len - index - 1,
             );
         }
@@ -85,21 +137,21 @@ impl<T> SelfVec<T> {
         result
     }
 
-    fn grow(&mut self) {
-        let new_cap = if self.cap == 0 { 1 } else { self.cap * 2 };
-        let new_layout = Layout::array::<T>(new_cap).unwrap();
-        let new_ptr = if self.cap == 0 {
-            unsafe { alloc(new_layout) }
-        } else {
-            let old_layout = Layout::array::<T>(self.cap).unwrap();
-            unsafe { realloc(self.ptr.as_ptr() as *mut u8, old_layout, new_layout.size()) }
-        };
-        if new_ptr.is_null() {
-            panic!("allocation failure");
-        }
-        self.ptr = NonNull::new(new_ptr as *mut T).unwrap();
-        self.cap = new_cap;
-    }
+    // fn grow(&mut self) {
+    //     let new_cap = if self.cap == 0 { 1 } else { self.cap * 2 };
+    //     let new_layout = Layout::array::<T>(new_cap).unwrap();
+    //     let new_ptr = if self.cap == 0 {
+    //         unsafe { alloc(new_layout) }
+    //     } else {
+    //         let old_layout = Layout::array::<T>(self.cap).unwrap();
+    //         unsafe { realloc(self.ptr.as_ptr() as *mut u8, old_layout, new_layout.size()) }
+    //     };
+    //     if new_ptr.is_null() {
+    //         panic!("allocation failure");
+    //     }
+    //     self.ptr = NonNull::new(new_ptr as *mut T).unwrap();
+    //     self.cap = new_cap;
+    // }
 }
 
 impl<T> Default for SelfVec<T> {
@@ -110,14 +162,11 @@ impl<T> Default for SelfVec<T> {
 
 impl<T> Drop for SelfVec<T> {
     fn drop(&mut self) {
-        if self.cap > 0 {
-            while self.pop().is_some() {}
-            unsafe {
-                dealloc(
-                    self.ptr.as_ptr() as *mut u8,
-                    Layout::array::<T>(self.cap).unwrap(),
-                );
-            }
+        unsafe {
+            ptr::drop_in_place(std::slice::from_raw_parts_mut(
+                self.raw_vec.ptr.as_ptr(),
+                self.len
+            ));
         }
     }
 }
@@ -125,20 +174,76 @@ impl<T> Drop for SelfVec<T> {
 impl<T> Deref for SelfVec<T> {
     type Target = [T];
     fn deref(&self) -> &[T] {
-        unsafe { std::slice::from_raw_parts(self.ptr.as_ptr(), self.len) }
+        unsafe { std::slice::from_raw_parts(self.raw_vec.ptr.as_ptr(), self.len) }
     }
 }
 
 impl<T> DerefMut for SelfVec<T> {
     fn deref_mut(&mut self) -> &mut [T] {
-        unsafe { std::slice::from_raw_parts_mut(self.ptr.as_ptr(), self.len) }
+        unsafe { std::slice::from_raw_parts_mut(self.raw_vec.ptr.as_ptr(), self.len) }
     }
 }
 
+pub struct IntoIter<T> {
+    raw_vec: RawVec<T>,
+    start: *const T,
+    end: *const T,
+}
+
+impl<T> SelfVec<T> {
+    fn into_iter(mut self) -> IntoIter<T> {
+        let len = self.len;
+        let cap = self.raw_vec.cap;
+        let p = self.raw_vec.ptr.as_ptr() as *const T;
+        let raw = std::mem::take(&mut self.raw_vec);
+
+        let end = if cap ==0 { p } else { unsafe {p.add(len)} };
+        IntoIter {
+            raw_vec: raw,
+            start: p,
+            end,
+        }
+    }
+}
+
+impl<T> Iterator for IntoIter<T> {
+    type Item = T;
+    fn next(&mut self) -> Option<T> {
+        if self.start == self.end {
+            return None;
+        }
+        unsafe {
+            let result = ptr::read(self.start);
+            self.start = self.start.add(1);
+            Some(result)
+        }
+    }
+}
+
+impl<T> DoubleEndedIterator for IntoIter<T> {
+    fn next_back(&mut self) -> Option<T> {
+        if self.start == self.end {
+            None
+        } else {
+            unsafe {
+                self.end = self.end.offset(-1);
+                Some(ptr::read(self.end))
+            }
+        }
+    }
+}
+
+impl<T> Drop for IntoIter<T> {
+    fn drop(&mut self) {
+        if self.start != self.end {
+            while self.next().is_some() {}
+        }
+    }
+}
 #[cfg(test)]
 mod tests {
-    use std::ops::{Deref, DerefMut};
     use crate::SelfVec;
+    use std::ops::{Deref, DerefMut};
 
     fn default_self_vec() -> SelfVec<usize> {
         let mut v = SelfVec::default();
@@ -232,12 +337,33 @@ mod tests {
         let mut v = default_self_vec();
         let v_deref = v.deref_mut();
         assert_eq!(v_deref.len(), 5);
-        let mut iter_mut = v_deref.iter_mut();
+        let iter_mut = v_deref.iter_mut();
         assert_eq!(iter_mut.len(), 5);
         for v in iter_mut {
             *v += 1;
         }
         assert_eq!(v_deref.first(), Some(&2));
         assert_eq!(v_deref.last(), Some(&6));
+    }
+
+    #[test]
+    fn into_iter() {
+        let v = default_self_vec();
+        let mut v_into_iter = v.into_iter();
+        assert_eq!(v_into_iter.next(), Some(1));
+        assert_eq!(v_into_iter.next(), Some(2));
+        assert_eq!(v_into_iter.next(), Some(3));
+        assert_eq!(v_into_iter.next(), Some(4));
+        assert_eq!(v_into_iter.next(), Some(5));
+        assert_eq!(v_into_iter.next(), None);
+
+        let v = default_self_vec();
+        let mut v_into_iter = v.into_iter();
+        assert_eq!(v_into_iter.next_back(), Some(5));
+        assert_eq!(v_into_iter.next_back(), Some(4));
+        assert_eq!(v_into_iter.next_back(), Some(3));
+        assert_eq!(v_into_iter.next_back(), Some(2));
+        assert_eq!(v_into_iter.next_back(), Some(1));
+        assert_eq!(v_into_iter.next_back(), None);
     }
 }
