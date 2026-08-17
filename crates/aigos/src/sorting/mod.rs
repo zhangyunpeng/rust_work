@@ -1,0 +1,10 @@
+mod bubble;
+mod bucket;
+mod cocktail;
+mod counting;
+mod heap;
+mod insert;
+mod merge;
+mod odd_even;
+mod quick;
+mod selection;

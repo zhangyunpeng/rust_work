@@ -163,10 +163,7 @@ impl<T> Default for SelfVec<T> {
 impl<T> Drop for SelfVec<T> {
     fn drop(&mut self) {
         unsafe {
-            ptr::drop_in_place(std::slice::from_raw_parts_mut(
-                self.raw_vec.ptr.as_ptr(),
-                self.len
-            ));
+            std::ptr::slice_from_raw_parts_mut(self.raw_vec.ptr.as_ptr(), self.len);
         }
     }
 }
@@ -197,7 +194,7 @@ impl<T> SelfVec<T> {
         let p = self.raw_vec.ptr.as_ptr() as *const T;
         let raw = std::mem::take(&mut self.raw_vec);
 
-        let end = if cap ==0 { p } else { unsafe {p.add(len)} };
+        let end = if cap == 0 { p } else { unsafe { p.add(len) } };
         IntoIter {
             raw_vec: raw,
             start: p,

@@ -1,9 +1,11 @@
 [workspace]
 resolver = "3"
 members = [
+    "crates/aigos",
     "crates/base",
     "crates/executor",
-    "crates/my_redis", "crates/self_vec",
+    "crates/my_redis",
+    "crates/self_vec",
     "crates/timer_future",
     "crates/web_more_threads",
     "crates/web_single_thread",
