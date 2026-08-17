@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-fn heap_sort<T: PartialOrd + Debug>(arr: &mut [T]) {
+pub fn heap_sort<T: PartialOrd + Debug>(arr: &mut [T]) {
     let n = arr.len();
     if n < 2 {
         return;

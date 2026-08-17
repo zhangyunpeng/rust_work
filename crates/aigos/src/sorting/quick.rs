@@ -14,7 +14,7 @@ fn quick_sort_range<T: PartialOrd>(arr: &mut Vec<T>, lo: usize, hi: usize) {
     }
 }
 
-fn partition<T: PartialOrd>(arr: &mut Vec<T>, lo: usize, hi: usize) -> usize {
+fn partition<T: PartialOrd>(arr: &mut [T], lo: usize, hi: usize) -> usize {
     let pivot = lo;
     let (mut left, mut right) = (lo, hi);
     while left < right {

@@ -1,4 +1,4 @@
-fn bubble_sort<T: PartialOrd>(arr: &mut [T]) {
+pub fn bubble_sort<T: PartialOrd>(arr: &mut [T]) {
     let len = arr.len();
     if len <= 1 {
         return;

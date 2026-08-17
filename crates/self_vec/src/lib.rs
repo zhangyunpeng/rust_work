@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 use std::alloc::{Layout, alloc, dealloc, realloc};
 use std::ops::{Deref, DerefMut};
 use std::ptr::NonNull;
@@ -162,9 +163,7 @@ impl<T> Default for SelfVec<T> {
 
 impl<T> Drop for SelfVec<T> {
     fn drop(&mut self) {
-        unsafe {
-            std::ptr::slice_from_raw_parts_mut(self.raw_vec.ptr.as_ptr(), self.len);
-        }
+        std::ptr::slice_from_raw_parts_mut(self.raw_vec.ptr.as_ptr(), self.len);
     }
 }
 
@@ -182,21 +181,46 @@ impl<T> DerefMut for SelfVec<T> {
 }
 
 pub struct IntoIter<T> {
-    raw_vec: RawVec<T>,
+    _raw_vec: RawVec<T>,
     start: *const T,
     end: *const T,
 }
 
-impl<T> SelfVec<T> {
-    fn into_iter(mut self) -> IntoIter<T> {
-        let len = self.len;
-        let cap = self.raw_vec.cap;
-        let p = self.raw_vec.ptr.as_ptr() as *const T;
-        let raw = std::mem::take(&mut self.raw_vec);
+// impl<T>  SelfVec<T> {
+//     pub fn into_iter(mut self) -> IntoIter<T> {
+//         let len = self.len;
+//         let cap = self.raw_vec.cap;
+//         let p = self.raw_vec.ptr.as_ptr() as *const T;
+//         let raw = std::mem::take(&mut self.raw_vec);
+//
+//         let end = if cap == 0 { p } else { unsafe { p.add(len) } };
+//         IntoIter {
+//             _raw_vec: raw,
+//             start: p,
+//             end,
+//         }
+//     }
+// }
 
-        let end = if cap == 0 { p } else { unsafe { p.add(len) } };
+impl<T> IntoIterator for SelfVec<T> {
+    type Item = T;
+    type IntoIter = IntoIter<T>;
+
+    fn into_iter(mut self) -> Self::IntoIter {
+        let len = self.len;
+        let p = self.raw_vec.ptr.as_ptr() as *const T;
+        // take 将raw_vec移出self，self的raw_vec变成默认空，self drop不会再释放内存
+        let _raw_vec = mem::take(&mut self.raw_vec);
+        // self.len 不需要置零，因为self马上就销毁，raw_vec已经被take走
+
+        let end = if _raw_vec.cap == 0 {
+            p
+        } else {
+            unsafe { p.add(len) }
+        };
+
         IntoIter {
-            raw_vec: raw,
+            _raw_vec,
             start: p,
             end,
         }

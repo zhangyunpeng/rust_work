@@ -3,7 +3,7 @@
    桶索引计算规则： index = ((val - min) / (max - min)) * (bucketCount - 1)
 */
 
-fn bucket_sort(arr: &mut [usize]) {
+pub fn bucket_sort(arr: &mut [usize]) {
     if arr.len() <= 1 {
         return;
     }

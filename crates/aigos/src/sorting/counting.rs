@@ -1,4 +1,4 @@
-fn counting_sort(arr: &mut [usize]) {
+pub fn counting_sort(arr: &mut [usize]) {
     let len = arr.len();
     if len < 2 {
         return;
@@ -7,7 +7,7 @@ fn counting_sort(arr: &mut [usize]) {
     let min = *arr.iter().min().unwrap();
     let max = *arr.iter().max().unwrap();
 
-    let range = (max - min + 1) as usize;
+    let range = max - min + 1;
     let mut count = vec![0; range];
 
     for &v in arr.iter() {

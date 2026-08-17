@@ -1,2 +1,2 @@
-mod reverse;
-mod kmp;
+pub mod kmp;
+pub mod reverse;

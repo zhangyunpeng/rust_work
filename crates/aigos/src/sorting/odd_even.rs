@@ -1,6 +1,4 @@
-
-
-fn odd_even_sort<T: PartialOrd>(arr: &mut [T]) {
+pub fn odd_even_sort<T: PartialOrd>(arr: &mut [T]) {
     let len = arr.len();
     if len <= 1 {
         return;

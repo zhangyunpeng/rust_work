@@ -1,4 +1,3 @@
-
 pub fn selection_sort<T: PartialOrd>(arr: &mut [T]) {
     let n = arr.len();
     if n < 2 {

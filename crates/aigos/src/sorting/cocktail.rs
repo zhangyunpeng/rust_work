@@ -3,7 +3,7 @@
    鸡尾酒排序双向扫描：先左→右把大数冒泡到尾部，再右→左把小数冒泡到头部，来回摆动。
 */
 
-fn cocktail_sort<T: PartialOrd>(arr: &mut [T]) {
+pub fn cocktail_sort<T: PartialOrd>(arr: &mut [T]) {
     let len = arr.len();
     if len <= 1 {
         return;
